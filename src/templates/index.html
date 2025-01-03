@@ -73,7 +73,6 @@
               updateStatus();
             } else {
               // If server says illegal or error => revert
-              board.position(dropData.oldPos);
               document.getElementById('status').innerText = data.message;
             }
           }).fail(function() {
@@ -92,12 +91,15 @@
       socket.on('board_update', function(data) {
         console.log("Received board_update from server:", data);
         // data.fen, data.pgn, data.statusText
-        board.position(data.fen);
-        board.flip();
+        if (board) {
+          board.position(data.fen);
+        }
         document.getElementById('fenSpan').innerText = data.fen;
         document.getElementById('pgnSpan').innerText = data.pgn;
         document.getElementById('status').innerText = data.statusText;
       });
+
+      let isFlipped = false;
 
       // Refresh the game status (FEN, PGN, etc.)
       function updateStatus() {
@@ -106,6 +108,14 @@
             document.getElementById('status').innerText = data.statusText;
             document.getElementById('fenSpan').innerText = data.fen;
             document.getElementById('pgnSpan').innerText = data.pgn;
+          }
+          if (board) {
+            if (!isFlipped) {
+              const newOrientation = board.flip()
+              isFlipped = true;
+            }
+            const newOrientation2 = board.flip()
+            console.log('New board orientation is:', newOrientation2)
           }
         });
       }

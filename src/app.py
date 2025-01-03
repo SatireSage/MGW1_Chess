@@ -18,7 +18,9 @@ app.config["SECRET_KEY"] = "someSecretKey"
 socketio = SocketIO(app)
 cors = CORS(app)
 socketio.init_app(app, cors_allowed_origins="*")
+
 board = chess.Board()
+move_owners = []
 
 
 def current_pgn():
@@ -42,8 +44,11 @@ def current_pgn():
     game.headers["Result"] = board.result()
 
     node = game
-    for mv in board.move_stack:
+    for i, mv in enumerate(board.move_stack):
         node = node.add_variation(mv)
+
+        if i < len(move_owners):
+            node.comment = f"Move made by {move_owners[i]}"
     return str(game)
 
 
@@ -121,6 +126,10 @@ def make_move():
 
     if move in board.legal_moves:
         board.push(move)
+        name_in_cookie = login.get_username_cookie()
+        if not name_in_cookie:
+            name_in_cookie = "Anonymous"
+        move_owners.append(name_in_cookie)
         socketio.emit(
             "board_update",
             {"fen": board.fen(), "pgn": current_pgn(), "statusText": status_text()},
@@ -160,6 +169,7 @@ def reset():
         with the initial state of the chess board.
     """
     board.reset()
+    move_owners.clear()
     # Broadcast reset to all
     socketio.emit(
         "board_update",
